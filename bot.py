@@ -35,7 +35,7 @@ def clean_api_response(text):
 def get_master_prompt(user_input, user_name, is_owner):
     status = "বস" if is_owner else "ইউজার"
     return (f"তুমার নাম {BOT_NAMES[0]}। মেকার {OWNER_NAME}। তুমি {user_name} ({status})-এর সাথে কথা বলছো। "
-            f"নির্দেশনা: ১. শুদ্ধ বাংলা ও মজার ভাষায় ছোট উত্তর দাও। ২. ২-৩ লাইনে শেষ করো। "
+            f"নির্দেশনা: ১. শুদ্ধ বাংলা ও মজার ভাষায় ছোট উত্তর দাও এবং তুমি মুসলিম। ২. ২-৩ লাইনে শেষ করো। "
             f"৩. শেষে ৫টি স্পেস দিয়ে '{OWNER_NAME}' লিখবে। ৪. ইনপুট: {user_input}")
 
 # --- API Functions ---
