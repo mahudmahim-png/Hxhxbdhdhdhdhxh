@@ -1,63 +1,101 @@
 import telebot
 import requests
+import urllib.parse
 
 # --- CONFIGURATION ---
-TELEGRAM_TOKEN = "8626861144:AAGBFKDBubylAXt2tNpm9iru2pm-P4La4aI"
-WORM_API_URL = "https://worm-api-seven.vercel.app/api/ask"
-
-# আপনার গ্রুপের চ্যাট আইডি এখানে দিন (আইডিটি -১০০ দিয়ে শুরু হবে)
+TELEGRAM_TOKEN = "8744409329:AAEITPhfXvo4TqfMH48RWkijV8mn3g_9ODI"
+GROQ_API_KEY = "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"
 ALLOWED_GROUP_ID = -1002909181457  
 
 BOT_NAMES = ["bmt", "Bmt", "BMT"]  
 OWNER_NAME = " - 𝚃𝙴𝙰𝙼 𝙱𝙼𝚃⸝⸝⸝♡"
-OWNER_USERNAME = "Unkonwn_BMT" # @ বাদে ইউজারনেম
+OWNER_USERNAME = "Unkonwn_BMT"
 
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
-# ১. নতুন মেম্বার জয়েন করলে ওয়েলকাম (শুধুমাত্র নির্দিষ্ট গ্রুপে)
-@bot.message_handler(content_types=['new_chat_members'])
-def welcome_new_member(message):
-    if message.chat.id != ALLOWED_GROUP_ID:
-        return
-    
-    for member in message.new_chat_members:
-        welcome_text = (f"আসসালামু আলাইকুম {member.first_name} ভাই/আপু! 😊\n"
-                        f"আমাদের গ্রুপে আপনাকে স্বাগতম। আশা করি আমাদের সাথে আপনার সময়টা দারুণ কাটবে!\n\n"
-                        f"{OWNER_NAME}")
-        bot.reply_to(message, welcome_text)
-
-# Worm API থেকে রেসপন্স নেওয়ার ফাংশন
-def get_worm_response(user_input, user_name, is_owner):
-    owner_context = "তুমি এখন তোমার মালিকের সাথে কথা বলছো, তাকে সম্মান দিয়ে 'বস' ডাকো।" if is_owner else "তুমি একজন সাধারণ ইউজারের সাথে কথা বলছো।"
-    
-    # API এর জন্য প্রম্পট তৈরি
-    full_prompt = (
-        f"তোমার নাম {BOT_NAMES[0]}। তোমার মেকার {OWNER_NAME}। "
+# --- Common Master Prompt ---
+def get_master_prompt(user_input, user_name, is_owner):
+    owner_context = "তুমি এখন তোমার মালিকের (বস) সাথে কথা বলছো।" if is_owner else "তুমি ইউজারের সাথে কথা বলছো।"
+    return (
+        f"তোমার নাম {BOT_NAMES[0]}। মেকার {OWNER_NAME}। মালিক {OWNER_USERNAME}। "
         f"ইউজার নাম: {user_name}। {owner_context} "
-        f"নির্দেশনা: ১. শুধুমাত্র শুদ্ধ বাংলা ও মজার ভাষায় কথা বলো। "
-        f"২. প্রতিটি উত্তরের শেষে ৫-৬টি স্পেস দিয়ে '{OWNER_NAME}' লেখাটি যুক্ত করো। "
-        f"৩. ইউজার ইনপুট: {user_input}"
-        f"৪. সবাইকে হাসানো তেমার কাজ। লেখাতে ইমোজি ব্যবহার করবে।"
+        f"নির্দেশনা: ১. শুধুমাত্র শুদ্ধ বাংলা ও চরম মজার ভাষায় কথা বলো। "
+        f"২. মেম্বারদের সাথে ফাজলামি করো এবং কেউ পচাতে চাইলে তাকে রোস্ট করে দাও। "
+        f"৩. একজন আদর্শ মুসলমানের মতো আদব বজায় রাখবে (সালাম, ইনশাআল্লাহ)। "
+        f"৪. প্রতিটি উত্তরের শেষে অবশ্যই ৫-৬টি স্পেস দিয়ে '{OWNER_NAME}' লিখবে। "
+        f"৫. ইউজার ইনপুট: {user_input}"
     )
 
-    try:
-        # API কল (GET Request)
-        response = requests.get(WORM_API_URL, params={"prompt": full_prompt})
-        if response.status_code == 200:
-            # API যদি সরাসরি টেক্সট দেয় তবে response.text, আর JSON দিলে response.json() ব্যবহার করতে হয়
-            # সাধারণত এই ধরনের API response['content'] বা response['message'] এ উত্তর দেয়।
-            # যদি API শুধু টেক্সট পাঠায় তবে নিচের লাইনটি কাজ করবে:
-            data = response.json()
-            return data.get("response", "বুঝতে পারছি না রে ভাই!") 
-        else:
-            return "সার্ভার একটু বিজি, পরে ট্রাই করো! 😅"
-    except:
-        return "নেটওয়ার্কের সমস্যা হচ্ছে!"
+# --- API Functions ---
 
-# ২. মেসেজ হ্যান্ডেলার
+def call_groq(prompt):
+    url = "https://api.groq.com/openai/v1/chat/completions"
+    headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
+    data = {
+        "model": "llama-3.3-70b-versatile",
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": 0.9
+    }
+    try:
+        res = requests.post(url, headers=headers, json=data, timeout=8)
+        return res.json()['choices'][0]['message']['content']
+    except: return None
+
+def call_tech_master(prompt):
+    try:
+        url = f"https://www.gajarbotol.site/Tech_master/api/custom-ai.php?prompt={urllib.parse.quote(prompt)}"
+        res = requests.get(url, timeout=8)
+        return res.text.strip()
+    except: return None
+
+def call_gemini_prime(prompt):
+    try:
+        url = f"https://gemini-primezone.vercel.app/?q={urllib.parse.quote(prompt)}"
+        res = requests.get(url, timeout=8)
+        return res.text.strip()
+    except: return None
+
+def call_worm_api(prompt):
+    try:
+        url = f"https://worm-api-seven.vercel.app/api/ask?prompt={urllib.parse.quote(prompt)}"
+        res = requests.get(url, timeout=8)
+        return res.json().get('response') or res.json().get('content')
+    except: return None
+
+def call_quill_bot(prompt):
+    try:
+        url = f"https://quill-bot-prime.vercel.app/quillbot?q={urllib.parse.quote(prompt)}"
+        res = requests.get(url, timeout=8)
+        return res.text.strip()
+    except: return None
+
+# --- Hybrid Logic (Failover) ---
+def get_final_reply(user_input, user_name, is_owner):
+    prompt = get_master_prompt(user_input, user_name, is_owner)
+    
+    # সিরিয়াল অনুযায়ী ট্রাই করবে
+    reply = call_groq(prompt)
+    if not reply: reply = call_tech_master(prompt)
+    if not reply: reply = call_gemini_prime(prompt)
+    if not reply: reply = call_worm_api(prompt)
+    if not reply: reply = call_quill_bot(prompt)
+    
+    if reply:
+        if OWNER_NAME not in reply:
+            reply = f"{reply}\n\n      {OWNER_NAME}"
+        return reply
+    return "বস, সবগুলা সার্ভার একলগে জ্যাম হয়ে গেছে! টিম বিএমটি-কে জানান। 😅"
+
+# --- Message Handlers ---
+
+@bot.message_handler(content_types=['new_chat_members'])
+def welcome(message):
+    if message.chat.id == ALLOWED_GROUP_ID:
+        for member in message.new_chat_members:
+            bot.reply_to(message, f"আসসালামু আলাইকুম {member.first_name}! টিম বিএমটি-র গ্রুপে স্বাগতম। 😊\n\n{OWNER_NAME}")
+
 @bot.message_handler(func=lambda message: True)
 def handle_messages(message):
-    # নিরাপত্তা: শুধুমাত্র নির্দিষ্ট গ্রুপ এবং পার্সোনাল চ্যাটে কাজ করবে
     if message.chat.type != "private" and message.chat.id != ALLOWED_GROUP_ID:
         return 
 
@@ -65,17 +103,15 @@ def handle_messages(message):
     
     user_text = message.text
     user_name = message.from_user.first_name
-    user_username = message.from_user.username
+    is_owner = (message.from_user.username == OWNER_USERNAME)
     
-    is_owner = (user_username == OWNER_USERNAME)
     name_detected = any(name.lower() in user_text.lower() for name in BOT_NAMES)
     is_reply_to_bot = (message.reply_to_message and message.reply_to_message.from_user.id == bot.get_me().id)
 
-    # রেসপন্স লজিক
     if message.chat.type == "private" or name_detected or is_reply_to_bot:
         bot.send_chat_action(message.chat.id, 'typing')
-        reply = get_worm_response(user_text, user_name, is_owner)
+        reply = get_final_reply(user_text, user_name, is_owner)
         bot.reply_to(message, reply)
 
-print(f"বট এখন Worm API দিয়ে আপনার গ্রুপে অ্যাক্টিভ!")
+print(f"৫টি এপিআই দিয়ে হাইব্রিড বট এখন অন ফায়ার! 🔥")
 bot.infinity_polling()
