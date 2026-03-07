@@ -41,12 +41,7 @@ def call_groq(prompt):
         return res.json()['choices'][0]['message']['content']
     except: return None
 
-def call_tech_master(prompt):
-    try:
-        url = f"https://www.gajarbotol.site/Tech_ster/api/custom-ai.php?prompt={urllib.parse.quote(prompt)}"
-        res = requests.get(url, timeout=8)
-        return res.text.strip()
-    except: return None
+
 
 def call_gemini_prime(prompt):
     try:
@@ -75,7 +70,6 @@ def get_final_reply(user_input, user_name, is_owner):
     
     # সিরিয়াল অনুযায়ী ট্রাই করবে
     reply = call_groq(prompt)
-    if not reply: reply = call_tech_master(prompt)
     if not reply: reply = call_gemini_prime(prompt)
     if not reply: reply = call_worm_api(prompt)
     if not reply: reply = call_quill_bot(prompt)
