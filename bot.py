@@ -43,7 +43,7 @@ def call_groq(prompt):
 
 def call_tech_master(prompt):
     try:
-        url = f"https://www.gajarbotol.site/Tech_master/api/custom-ai.php?prompt={urllib.parse.quote(prompt)}"
+        url = f"https://www.gajarbotol.site/Tech_ster/api/custom-ai.php?prompt={urllib.parse.quote(prompt)}"
         res = requests.get(url, timeout=8)
         return res.text.strip()
     except: return None
