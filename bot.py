@@ -54,7 +54,7 @@ def call_api_sequential(prompt):
     
     # ১. Gemini Prime (Existing)
     try:
-        res = requests.get(f"https://gemini-primezone.vercel.app/?q={encoded_prompt}", timeout=10)
+        res = requests.get(f"https://gemini-primezone.vercel.app/?q={encoded_prompt}", timeout=3)
         if res.status_code == 200:
             last_api_used = "Gemini Prime"
             return res.text
@@ -62,7 +62,7 @@ def call_api_sequential(prompt):
 
     # ২. Gajarbotol (New API - Tech Master)
     try:
-        res = requests.get(f"https://www.gajarbotol.site/Tech_master/api/custom-ai.php?prompt={encoded_prompt}", timeout=10)
+        res = requests.get(f"https://www.gajarbotol.site/Tech_master/api/custom-ai.php?prompt={encoded_prompt}", timeout=3)
         if res.status_code == 200:
             last_api_used = "Tech Master"
             return res.text
@@ -70,7 +70,7 @@ def call_api_sequential(prompt):
 
     # ৩. Gemini Vercel (New API - Abdur)
     try:
-        res = requests.get(f"https://gemini-api-bay-ten.vercel.app/api/ask?prompt={encoded_prompt}", timeout=10)
+        res = requests.get(f"https://gemini-api-bay-ten.vercel.app/api/ask?prompt={encoded_prompt}", timeout=4)
         if res.status_code == 200:
             last_api_used = "Gemini Vercel"
             return res.text
@@ -78,7 +78,7 @@ def call_api_sequential(prompt):
 
     # ৪. Worm GPT
     try:
-        res = requests.get(f"https://worm-api-seven.vercel.app/api/ask?prompt={encoded_prompt}", timeout=10)
+        res = requests.get(f"https://worm-api-seven.vercel.app/api/ask?prompt={encoded_prompt}", timeout=5)
         if res.status_code == 200:
             last_api_used = "Worm GPT"
             return res.text
@@ -86,7 +86,7 @@ def call_api_sequential(prompt):
 
     # ৫. DarkTube
     try:
-        res = requests.post('https://darktube.serv00.net/ai.php', json={'prompt': prompt}, timeout=10)
+        res = requests.post('https://darktube.serv00.net/ai.php', json={'prompt': prompt}, timeout=5)
         if res.status_code == 200:
             last_api_used = "DarkTube"
             return res.json().get('response')
