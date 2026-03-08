@@ -7,79 +7,99 @@ import json
 TELEGRAM_TOKEN = "8744409329:AAEITPhfXvo4TqfMH48RWkijV8mn3g_9ODI"
 GROQ_API_KEY = "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"
 ALLOWED_GROUP_ID = -1002909181457  
-OWNER_USERNAME = "@Unkonwn_BMT"
+OWNER_USERNAME = "Unkonwn_BMT" # এখানে @ ছাড়া দিবেন যাতে কমান্ড কাজ করে
 BOT_NAMES = ["bmt", "Bmt"]
 OWNER_NAME = " - 𝚃𝙴𝙰𝙼 𝙱𝙼𝚃⸝⸝⸝♡"
 
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 is_bot_active = True
-last_api_used = "None" # কোন এপিআই ইউজ হয়েছে তা সেভ থাকবে
+last_api_used = "None" 
 all_users = set()
 
-# --- Response Cleaning ---
+# --- Response Cleaning & Pretty Output ---
 def clean_api_response(text):
     if not text: return None
-    bad_phrases = ["Worm GPT", "আবদুর রহমান", "𝗔𝗣𝗜", "Developer", "Channel", "success", "DarkTube", "নমস্কার", "আদাব", "Model:", "Response:", "Input:", "Output:"]
     
-    if isinstance(text, str) and text.strip().startswith('{'):
+    # এপিআই যদি JSON পাঠায়, তবে তা থেকে আসল মেসেজ বের করা (Pretty Print Logic)
+    if isinstance(text, str) and (text.strip().startswith('{') or text.strip().startswith('[')):
         try:
             data = json.loads(text)
-            text = data.get('response') or data.get('content') or text
+            # সিরিয়াল অনুযায়ী সম্ভাব্য Key চেক করা
+            text = data.get('result') or data.get('response') or data.get('content') or data.get('message') or text
         except: pass
 
-    lines = str(text).split('\n')
-    cleaned_lines = [line for line in lines if not any(phrase in line.lower() for phrase in [b.lower() for b in bad_phrases])]
+    # ফালতু লেখা রিমুভ করা
+    bad_phrases = ["Worm GPT", "tech master", "@abdur081", "আবদুর রহমান", "𝗔𝗣𝗜", "Developer", "success", "DarkTube", "Model:", "Response:"]
+    
+    if not isinstance(text, str): text = str(text)
+    
+    lines = text.split('\n')
+    cleaned_lines = [line for line in lines if not any(phrase.lower() in line.lower() for phrase in bad_phrases)]
     return "\n".join(cleaned_lines).strip()
 
-# --- Unified Prompt (Strict Bangla) ---
+# --- Unified Prompt ---
 def get_unified_prompt(user_input, user_name, is_owner):
     status = "মালিক" if is_owner else "মেম্বার"
     return (
-        f"তুমার নাম {BOT_NAMES[0]}। মেকার {OWNER_NAME}। তেমাকে তৈরি করেছেন যিনি তার ইউজার নাম {OWNER_USERNAME} ওনার নাম যেভাবে আছে এভাবেই লিখবে।  ইউজার: {user_name} ({status})। "
-        f"নির্দেশনা: ১. শুদ্ধ বাংলায় এবং চরম ফানি রোস্ট স্টাইলে আর তোমার কাজ সবাইকে হাসানো এবং লেখাতে ইমোজি ব্যবহার করবে ২ লাইনে উত্তর দাও। "
-        f"২. বাংলিশ (Banglish) বলবে না, শুধু বাংলা অক্ষর ব্যবহার করো। "
-        f"৩. কোনো এপিআই-এর নাম বা প্রম্পট কপি করবে না। "
-        f"ইনপুট: {user_input}"
+        f"তুমার নাম {BOT_NAMES[0]}। মেকার {OWNER_NAME}। তেমাকে তৈরি করেছেন যিনি তার ইউজার নাম @{OWNER_USERNAME}। "
+        f"ইউজার: {user_name} ({status})। "
+        f"নির্দেশনা: ১. শুদ্ধ বাংলায় এবং চরম ফানি রোস্ট স্টাইলে ৩ লাইনে উত্তর দাও। ২. বাংলিশ বলবে না, ইমোজি ব্যবহার করবে। "
+        f"৩. এপিআই এর নাম বলবে না। ইনপুট: {user_input}"
     )
 
-# --- Sequential API System ---
+# --- Sequential API System (৬টি এপিআই) ---
 def call_api_sequential(prompt):
     global last_api_used
+    encoded_prompt = urllib.parse.quote(prompt)
     
-    # 1. Groq
+    # ১. Gemini Prime (Existing)
     try:
-        headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
-        payload = {"model": "llama-3.3-70b-versatile", "messages": [{"role": "user", "content": prompt}], "temperature": 0.8}
-        res = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=payload, timeout=10)
-        if res.status_code == 200:
-            last_api_used = "Groq (Llama 3.3)"
-            return res.json()['choices'][0]['message']['content']
-    except: pass
-
-    # 2. Gemini
-    try:
-        res = requests.get(f"https://gemini-primezone.vercel.app/?q={urllib.parse.quote(prompt)}", timeout=10)
+        res = requests.get(f"https://gemini-primezone.vercel.app/?q={encoded_prompt}", timeout=10)
         if res.status_code == 200:
             last_api_used = "Gemini Prime"
             return res.text
     except: pass
 
-    # 3. Worm
+    # ২. Gajarbotol (New API - Tech Master)
     try:
-        res = requests.get(f"https://worm-api-seven.vercel.app/api/ask?prompt={urllib.parse.quote(prompt)}", timeout=10)
+        res = requests.get(f"https://www.gajarbotol.site/Tech_master/api/custom-ai.php?prompt={encoded_prompt}", timeout=10)
+        if res.status_code == 200:
+            last_api_used = "Tech Master"
+            return res.text
+    except: pass
+
+    # ৩. Gemini Vercel (New API - Abdur)
+    try:
+        res = requests.get(f"https://gemini-api-bay-ten.vercel.app/api/ask?prompt={encoded_prompt}", timeout=10)
+        if res.status_code == 200:
+            last_api_used = "Gemini Vercel"
+            return res.text
+    except: pass
+
+    # ৪. Worm GPT
+    try:
+        res = requests.get(f"https://worm-api-seven.vercel.app/api/ask?prompt={encoded_prompt}", timeout=10)
         if res.status_code == 200:
             last_api_used = "Worm GPT"
             return res.text
     except: pass
 
-    # 4. DarkTube
+    # ৫. DarkTube
     try:
         res = requests.post('https://darktube.serv00.net/ai.php', json={'prompt': prompt}, timeout=10)
         if res.status_code == 200:
-            data = res.json()
-            if data.get('success'):
-                last_api_used = "DarkTube AI"
-                return data.get('response')
+            last_api_used = "DarkTube"
+            return res.json().get('response')
+    except: pass
+
+    # ৬. Groq (সবার শেষে)
+    try:
+        headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
+        payload = {"model": "llama-3.3-70b-versatile", "messages": [{"role": "user", "content": prompt}], "temperature": 0.8}
+        res = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=payload, timeout=12)
+        if res.status_code == 200:
+            last_api_used = "Groq"
+            return res.json()['choices'][0]['message']['content']
     except: pass
 
     last_api_used = "All APIs Failed"
@@ -92,22 +112,19 @@ def admin_commands(message):
     if message.from_user.username != OWNER_USERNAME: return
     
     cmd = message.text.split()[0]
-    
     if cmd == '/on':
         is_bot_active = True
-        bot.reply_to(message, "বট এখন অ্যাক্টিভ! সবাই লাইন ধরো। 🔥")
+        bot.reply_to(message, "বট এখন অ্যাক্টিভ! 🔥")
     elif cmd == '/off':
         is_bot_active = False
-        bot.reply_to(message, "বট এখন বিশ্রামে। কেউ ডিস্টার্ব করবা না। 😴")
+        bot.reply_to(message, "বট এখন বিশ্রামে। 😴")
     elif cmd == '/api':
-        bot.reply_to(message, f"📊 **API Status:**\nসর্বশেষ সফল রিকোয়েস্ট গিয়েছে: `{last_api_used}`")
+        bot.reply_to(message, f"📊 **API Status:**\nসর্বশেষ সফল রিকোয়েস্ট: `{last_api_used}`")
     elif cmd == '/broadcast':
         msg_to_send = message.text.replace('/broadcast', '').strip()
-        if not msg_to_send:
-            bot.reply_to(message, "মেসেজ লিখুন।")
-            return
+        if not msg_to_send: return
         count = 0
-        for uid in all_users:
+        for uid in list(all_users):
             try:
                 bot.send_message(uid, f"📢 **নোটিশ:**\n\n{msg_to_send}\n\n{OWNER_NAME}")
                 count += 1
@@ -129,13 +146,11 @@ def handle_messages(message):
     is_reply = (message.reply_to_message and message.reply_to_message.from_user.id == bot.get_me().id)
 
     if message.chat.type == "private" or name_detected or is_reply:
-        # বট অফ থাকলে রিপ্লাই
         if not is_bot_active and not is_owner:
             bot.reply_to(message, "বস আমাকে এখন ঘুমাতে বলছে। পরে আসিস! 💤")
             return
             
         bot.send_chat_action(message.chat.id, 'typing')
-        
         prompt = get_unified_prompt(message.text, message.from_user.first_name, is_owner)
         reply = call_api_sequential(prompt)
         final_text = clean_api_response(reply)
@@ -143,7 +158,7 @@ def handle_messages(message):
         if final_text:
             bot.reply_to(message, f"{final_text}\n\n      {OWNER_NAME}")
         else:
-            bot.reply_to(message, "সার্ভারগুলা বিরিয়ানি খাইতে গেছে বস! একটু পর ট্রাই মারেন। 😅")
+            bot.reply_to(message, "সার্ভারগুলা বিরিয়ানি খাইতে গেছে বস! 😅")
 
-print("বট এখন এপিআই ট্র্যাকারসহ ফুল সেটআপে রেডি! 🔥")
+print("৬টি এপিআই সহ বট একদম ক্লিনভাবে রেডি! 🔥")
 bot.infinity_polling()
